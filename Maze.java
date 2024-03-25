@@ -1,14 +1,16 @@
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.lang.System.exit;
+import static java.lang.System.in;
 
 public class Maze {
+    private static final ArrayList<char[]> labyrinth = new ArrayList<>();
+
     public static void main(String[] args) {
-        ArrayList<char[]> labyrinth = new ArrayList<>();
-        ArrayList<char[]> result = new ArrayList<>();
         Scanner scanner = new Scanner(System.in);
         int width = -1;
 
@@ -32,8 +34,10 @@ public class Maze {
                 exit(1);
             }
             labyrinth.add(temporary.toCharArray());
-            result.add(temporary.toCharArray());
         }
+
+        Point entrance = new Point(1, 1);
+        Point exit = new Point(width - 2, labyrinth.size() - 1);
 
         //Check labyrinth width
         if (labyrinth.size() < 5) {
@@ -46,21 +50,22 @@ public class Maze {
             exit(1);
         }
         //Check labyrinth exit
-        else if (labyrinth.get(labyrinth.size() - 1)[labyrinth.get(labyrinth.size() - 1).length - 2] != '.') {
+        else if (labyrinth.get(exit.y)[exit.x] != '.') {
             System.err.println("Error: Vystup neni vpravo dole!");
             exit(1);
         }
 
         //Check labyrinth symbols
-        for (int i = 0; i < labyrinth.size(); i++) {
+        for (char[] chars : labyrinth) {
             Pattern pattern = Pattern.compile("^[.#]*$");
-            Matcher matcher = pattern.matcher(new String(labyrinth.get(i)));
+            Matcher matcher = pattern.matcher(new String(chars));
             if (!matcher.find()) {
                 System.err.println("Error: Bludiste obsahuje nezname znaky!");
                 exit(1);
             }
         }
 
+        //Check labyrinth symbols (again!?)
         for (int i = 0; i < labyrinth.size(); i++) {
             if (i == 0) {
                 Pattern patternBorder = Pattern.compile("^[#]\\.[#]{" + (labyrinth.get(i).length - 2) + "}$");
@@ -89,30 +94,27 @@ public class Maze {
         }
 
         //Check path
-        int[][] isVisited = new int[labyrinth.size()][width];
-        if (path(labyrinth, isVisited)) {
-            for (int y = isVisited.length - 1; y > 0; y--) {
-                for (int x = isVisited[y].length - 1; x >= 0; x--) {
-                    if (isVisited[y][x] == 1) {
-                        int[][] isVisitedCopy = new int[labyrinth.size()][width];
-                        labyrinth.get(y)[x] = '#';
-                        if (!path(labyrinth, isVisitedCopy)) {
-                            result.get(y)[x] = '!';
-                            labyrinth.get(y)[x] = '.';
-                        }
-                        else {
-                            labyrinth.get(y)[x] = '.';
-                        }
-                    }
-                }
+        boolean[][] isVisited = new boolean[width][labyrinth.size()];
+        ArrayList<Point> path = new ArrayList<>();
+        try {
+            recursiveDepthFirstSearch(entrance, exit, isVisited, path);
+        }
+        catch (Exception e) {
+        }
+
+        for (Point point: path) {
+            boolean[][] visited = new boolean[width][labyrinth.size()];
+            labyrinth.get(point.y)[point.x] = '#';
+            try {
+                recursiveDepthFirstSearch(entrance, exit, visited, new ArrayList<>());
+                labyrinth.get(point.y)[point.x] = '!';
             }
-            result.get(0)[1] = '!';
+            catch (Exception e) {
+                labyrinth.get(point.y)[point.x] = '.';
+            }
         }
-        else {
-            System.err.println("Error: Cesta neexistuje!");
-            exit(1);
-        }
-        printArray(result);
+
+        printArray(labyrinth);
     }
 
     private static void printArray(ArrayList<char[]> inputArray) {
@@ -121,16 +123,51 @@ public class Maze {
         }
     }
 
-    private static void printArray(int[][] inputArray) {
-        System.out.println();
-        for (int[] row: inputArray) {
-            for(var var: row) {
-                System.out.print(var + " ");
+    private static void recursiveDepthFirstSearch(Point current, Point end, boolean[][] inputVisited,
+                                                  ArrayList<Point> inputPath) {
+        inputVisited[current.x][current.y] = true;
+        if (current.x == end.x && current.y == end.y) {
+            inputPath.add(current);
+            throw new RuntimeException("Path found");
+        }
+        else {
+            ArrayList<Point> routes = checkRoutes(current, inputVisited);
+            for (Point route : routes) {
+                inputPath.add(current);
+                recursiveDepthFirstSearch(route, end, inputVisited, inputPath);
+                inputPath.remove(inputPath.get(inputPath.size() - 1));
             }
-            System.out.println();
         }
     }
 
+    private static ArrayList<Point> checkRoutes(Point inputPoint, boolean[][] inputVisited) {
+        ArrayList<Point> result = new ArrayList<>();
+        //Check right
+        if (checkPoint(inputPoint) && labyrinth.get(inputPoint.y)[inputPoint.x + 1] != '#' &&
+                !inputVisited[inputPoint.x + 1][inputPoint.y])
+            result.add(new Point((inputPoint.x + 1), inputPoint.y));
+        //Check down
+        if (checkPoint(inputPoint) && labyrinth.get(inputPoint.y - 1)[inputPoint.x] != '#' &&
+                !inputVisited[inputPoint.x][inputPoint.y - 1])
+            result.add(new Point(inputPoint.x, (inputPoint.y - 1)));
+        //Check left
+        if (checkPoint(inputPoint) && labyrinth.get(inputPoint.y)[inputPoint.x - 1] != '#' &&
+                !inputVisited[inputPoint.x - 1][inputPoint.y])
+            result.add(new Point((inputPoint.x - 1), inputPoint.y));
+        //Check up
+        if (checkPoint(inputPoint) && labyrinth.get(inputPoint.y + 1)[inputPoint.x] != '#' &&
+                !inputVisited[inputPoint.x][inputPoint.y + 1])
+            result.add(new Point(inputPoint.x, (inputPoint.y + 1)));
+        return result;
+    }
+
+    public static boolean checkPoint(Point inputPoint) {
+        //Check down & up
+        if ((inputPoint.y - 1) < 0 || (labyrinth.size() - 1) < (inputPoint.y + 1)) return false;
+        //Check right & left
+        if ((inputPoint.x - 1) < 0 || (labyrinth.get(labyrinth.size() - 1).length - 1) < (inputPoint.x + 1)) return false;
+        return true;
+    }
     private static boolean path(ArrayList<char[]> inputArray, int[][] inputVisited) {
         int x = 1;
         int y = 0;
