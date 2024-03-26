@@ -1,7 +1,8 @@
+import task1.Maze;
 
 public class Main {
-//    public static void main(String[] args) {
-//        Maze maze = new Maze();
-//        maze.firstTask();
-//    }
+    public static void main(String[] args) {
+        Maze labyrinth = new Maze();
+        labyrinth.maze();
+    }
 }

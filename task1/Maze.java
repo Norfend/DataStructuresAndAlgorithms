@@ -1,3 +1,5 @@
+package task1;
+
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -7,10 +9,12 @@ import java.util.regex.Pattern;
 import static java.lang.System.exit;
 import static java.lang.System.in;
 
+
+
 public class Maze {
     private static final ArrayList<char[]> labyrinth = new ArrayList<>();
 
-    public static void main(String[] args) {
+    public void maze() {
         Scanner scanner = new Scanner(System.in);
         int width = -1;
 
@@ -36,7 +40,7 @@ public class Maze {
             labyrinth.add(temporary.toCharArray());
         }
 
-        Point entrance = new Point(1, 1);
+        Point entrance = new Point(1, 0);
         Point exit = new Point(width - 2, labyrinth.size() - 1);
 
         //Check labyrinth width
@@ -45,7 +49,7 @@ public class Maze {
             exit(1);
         }
         //Check labyrinth entrance
-        else if (labyrinth.get(0)[1] != '.') {
+        else if (labyrinth.get(entrance.y)[entrance.x] != '.') {
             System.err.println("Error: Vstup neni vlevo nahore!");
             exit(1);
         }
@@ -99,9 +103,16 @@ public class Maze {
         try {
             recursiveDepthFirstSearch(entrance, exit, isVisited, path);
         }
+
+        //Saving time by forcibly exiting recursion
         catch (Exception e) {
         }
+        if (path.size() == 0) {
+            System.err.println("Error: Cesta neexistuje!");
+            exit(1);
+        }
 
+        //Try to "lock" points from the path
         for (Point point: path) {
             boolean[][] visited = new boolean[width][labyrinth.size()];
             labyrinth.get(point.y)[point.x] = '#';
@@ -113,7 +124,7 @@ public class Maze {
                 labyrinth.get(point.y)[point.x] = '.';
             }
         }
-
+        labyrinth.get(entrance.y)[entrance.x] = '!';
         printArray(labyrinth);
     }
 
@@ -123,7 +134,7 @@ public class Maze {
         }
     }
 
-    private static void recursiveDepthFirstSearch(Point current, Point end, boolean[][] inputVisited,
+    private void recursiveDepthFirstSearch(Point current, Point end, boolean[][] inputVisited,
                                                   ArrayList<Point> inputPath) {
         inputVisited[current.x][current.y] = true;
         if (current.x == end.x && current.y == end.y) {
@@ -140,82 +151,24 @@ public class Maze {
         }
     }
 
-    private static ArrayList<Point> checkRoutes(Point inputPoint, boolean[][] inputVisited) {
+    private ArrayList<Point> checkRoutes(Point inputPoint, boolean[][] inputVisited) {
         ArrayList<Point> result = new ArrayList<>();
         //Check right
-        if (checkPoint(inputPoint) && labyrinth.get(inputPoint.y)[inputPoint.x + 1] != '#' &&
-                !inputVisited[inputPoint.x + 1][inputPoint.y])
+        if ((inputPoint.x + 1) < (labyrinth.get(labyrinth.size() - 1).length - 1) &&
+                labyrinth.get(inputPoint.y)[inputPoint.x + 1] != '#' && !inputVisited[inputPoint.x + 1][inputPoint.y])
             result.add(new Point((inputPoint.x + 1), inputPoint.y));
         //Check down
-        if (checkPoint(inputPoint) && labyrinth.get(inputPoint.y - 1)[inputPoint.x] != '#' &&
-                !inputVisited[inputPoint.x][inputPoint.y - 1])
-            result.add(new Point(inputPoint.x, (inputPoint.y - 1)));
+        if ((inputPoint.y + 1) <= (labyrinth.size() - 1) && labyrinth.get(inputPoint.y + 1)[inputPoint.x] != '#' &&
+                !inputVisited[inputPoint.x][inputPoint.y + 1])
+            result.add(new Point(inputPoint.x, (inputPoint.y + 1)));
         //Check left
-        if (checkPoint(inputPoint) && labyrinth.get(inputPoint.y)[inputPoint.x - 1] != '#' &&
+        if (0 < (inputPoint.x - 1) && labyrinth.get(inputPoint.y)[inputPoint.x - 1] != '#' &&
                 !inputVisited[inputPoint.x - 1][inputPoint.y])
             result.add(new Point((inputPoint.x - 1), inputPoint.y));
         //Check up
-        if (checkPoint(inputPoint) && labyrinth.get(inputPoint.y + 1)[inputPoint.x] != '#' &&
-                !inputVisited[inputPoint.x][inputPoint.y + 1])
-            result.add(new Point(inputPoint.x, (inputPoint.y + 1)));
+        if (0 < (inputPoint.y - 1) && labyrinth.get(inputPoint.y - 1)[inputPoint.x] != '#' &&
+                !inputVisited[inputPoint.x][inputPoint.y - 1])
+            result.add(new Point(inputPoint.x, (inputPoint.y - 1)));
         return result;
-    }
-
-    public static boolean checkPoint(Point inputPoint) {
-        //Check down & up
-        if ((inputPoint.y - 1) < 0 || (labyrinth.size() - 1) < (inputPoint.y + 1)) return false;
-        //Check right & left
-        if ((inputPoint.x - 1) < 0 || (labyrinth.get(labyrinth.size() - 1).length - 1) < (inputPoint.x + 1)) return false;
-        return true;
-    }
-    private static boolean path(ArrayList<char[]> inputArray, int[][] inputVisited) {
-        int x = 1;
-        int y = 0;
-        try {
-            while (true) {
-                if (x == inputArray.get(inputArray.size() - 1).length - 2 && y == inputArray.size() - 1) {
-                    inputVisited[y][x] = 1;
-                    return true;
-                }
-                if (x < inputArray.get(0).length && y < inputArray.size()) {
-                    //Move forward
-                    if (inputArray.get(y + 1)[x] == '.' && inputVisited[y + 1][x] == 0) {
-                        inputVisited[y][x] = 1;
-                        y++;
-                    } else if (inputArray.get(y)[x + 1] == '.' && inputVisited[y][x + 1] == 0) {
-                        inputVisited[y][x] = 1;
-                        x++;
-                    } else if (inputArray.get(y)[x - 1] == '.' && inputVisited[y][x - 1] == 0) {
-                        inputVisited[y][x] = 1;
-                        x--;
-                    } else if (y - 1 > -1 && inputArray.get(y - 1)[x] == '.' && inputVisited[y - 1][x] == 0) {
-                        inputVisited[y][x] = 1;
-                        y--;
-                    }
-                    //Move rearward
-                    else if (y - 1 > -1 && inputVisited[y - 1][x] == 1) {
-                        inputVisited[y][x] = 2;
-                        y--;
-                    } else if (inputVisited[y][x - 1] == 1) {
-                        inputVisited[y][x] = 2;
-                        x--;
-                    } else if (inputVisited[y][x + 1] == 1) {
-                        inputVisited[y][x] = 2;
-                        x++;
-                    } else if (inputVisited[y + 1][x] == 1) {
-                        inputVisited[y][x] = 2;
-                        y++;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    System.err.println("Array out of bound");
-                }
-            }
-        }
-        catch (Exception e) {
-            System.err.println(e.getMessage());
-        }
-        return false;
     }
 }
