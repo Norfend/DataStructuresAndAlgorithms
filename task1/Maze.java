@@ -9,15 +9,20 @@ import java.util.regex.Pattern;
 import static java.lang.System.exit;
 import static java.lang.System.in;
 
-
+/**
+ * Standard Depth-first search algorithm with preliminary input data checks
+ *
+ * @return Outputs errors to the System.err or a maze with the required points into system.out
+ */
 
 public class Maze {
+    //Static variable for the maze
     private static final ArrayList<char[]> labyrinth = new ArrayList<>();
 
     public void maze() {
         Scanner scanner = new Scanner(System.in);
+        //Labyrinth width
         int width = -1;
-
         //Labyrinth loading
         while (scanner.hasNext()) {
             //Check labyrinth width
@@ -39,7 +44,7 @@ public class Maze {
             }
             labyrinth.add(temporary.toCharArray());
         }
-
+        //Variables for entrance and exit of the maze
         Point entrance = new Point(1, 0);
         Point exit = new Point(width - 2, labyrinth.size() - 1);
 
@@ -68,8 +73,7 @@ public class Maze {
                 exit(1);
             }
         }
-
-        //Check labyrinth symbols (again!?)
+        //Check labyrinth symbols (to complete task requirements)
         for (int i = 0; i < labyrinth.size(); i++) {
             if (i == 0) {
                 Pattern patternBorder = Pattern.compile("^[#]\\.[#]{" + (labyrinth.get(i).length - 2) + "}$");
@@ -103,10 +107,10 @@ public class Maze {
         try {
             recursiveDepthFirstSearch(entrance, exit, isVisited, path);
         }
-
         //Saving time by forcibly exiting recursion
         catch (Exception e) {
         }
+        //Checking the existence of a path
         if (path.size() == 0) {
             System.err.println("Error: Cesta neexistuje!");
             exit(1);
@@ -124,16 +128,33 @@ public class Maze {
                 labyrinth.get(point.y)[point.x] = '.';
             }
         }
+        //Final polishing and printing of labyrinth
         labyrinth.get(entrance.y)[entrance.x] = '!';
         printArray(labyrinth);
     }
 
+    /**
+     * Printing of the labyrinth into system.out
+     *
+     * @param inputArray Printable array variable
+     */
     private static void printArray(ArrayList<char[]> inputArray) {
         for (char[] row: inputArray) {
             System.out.println(row);
         }
     }
 
+    /**
+     * Recursive Depth-first search algorithm
+     *
+     * @param current Initial point
+     *
+     * @param end Exit point
+     *
+     * @param inputVisited Array of visited "vertices"
+     *
+     * @param inputPath Array for visited "vertices"
+     */
     private void recursiveDepthFirstSearch(Point current, Point end, boolean[][] inputVisited,
                                                   ArrayList<Point> inputPath) {
         inputVisited[current.x][current.y] = true;
@@ -151,6 +172,15 @@ public class Maze {
         }
     }
 
+    /**
+     * Search for possible shifts from the input point
+     *
+     * @param inputPoint Initial point
+     *
+     * @param inputVisited Array of visited "vertices"
+     *
+     * @return ArrayList of possible shifts from an input point
+     */
     private ArrayList<Point> checkRoutes(Point inputPoint, boolean[][] inputVisited) {
         ArrayList<Point> result = new ArrayList<>();
         //Check right
