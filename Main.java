@@ -1,8 +1,14 @@
-import task1.Maze;
+import task2.Sort;
+
+import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) {
-        Maze labyrinth = new Maze();
-        labyrinth.maze();
+        Sort sort = new Sort();
+        try {
+            sort.homeWork02();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
