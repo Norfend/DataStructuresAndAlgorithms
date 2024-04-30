@@ -8,9 +8,18 @@ public class Sort {
     private Integer maximumValue;
     private Integer typeOfSequence;
     private Integer virus;
+
+    /**
+     * This function read sequence from System input.
+     * First line consists of 3 elements: maximum value of sequence, type of sequence (ASC/DES/Random) and virus presence
+     * Next lines are numbers of sequence
+     * After sorting function write to System output ASC sequence or write errors to System err
+     */
     public void homeWork02() {
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        //input data decomposition
         ArrayList<Integer> inputArray = inputHandler(bufferedReader);
+        //Start of sorting algorithm
         if (typeOfSequence == 0) {
             outputSequence(radix(inputArray, maximumValue));
         }
@@ -30,6 +39,11 @@ public class Sort {
         }
     }
 
+    /**
+     *
+     * @param bufferedReader
+     * @return
+     */
     private ArrayList<Integer> inputHandler(BufferedReader bufferedReader) {
         ArrayList<Integer> result = new ArrayList<>();
         String line;
@@ -40,7 +54,7 @@ public class Sort {
                 result.add(number);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e.getMessage());
         }
         Integer previousNumber = result.getFirst();
         for (int i = 1; i < result.size(); i++) {
