@@ -1,40 +1,53 @@
 package task2;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class Sort {
-    public void homeWork02() throws IOException {
-        BufferedInputStream inputStream = new BufferedInputStream(System.in);
-        System.out.println();
-        Integer[] inputArray = inputHandler(inputStream);
-        for (var _a: inputArray) {
-            System.out.println(_a);
+    private Integer maximumValue;
+    private Integer typeOfSequence;
+    private Integer virus;
+    public void homeWork02() {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        ArrayList<Integer> inputArray = inputHandler(bufferedReader);
+        if (typeOfSequence == 0) {
+            outputSequence(radix(inputArray, maximumValue));
+        }
+        if (typeOfSequence == 1 && virus == 0) {
+            outputSequence(inputArray);
+        }
+        if (typeOfSequence == 2 && virus == 0) {
+            Collections.reverse(inputArray);
+            outputSequence(inputArray);
+        }
+        if (typeOfSequence == 1 && virus == 1) {
+            outputSequence(insertion(inputArray));
+        }
+        if (typeOfSequence == 2 && virus == 1) {
+            Collections.reverse(inputArray);
+            outputSequence(insertion(inputArray));
         }
     }
-    private Integer[] inputHandler(BufferedInputStream bufferedInputStream) throws IOException {
-        byte[] array = bufferedInputStream.readAllBytes();
-        bufferedInputStream.close();
-        String[] inputtedValues = new String(array, StandardCharsets.UTF_8).split("\r\n");
-        Integer[] result = new Integer[inputtedValues.length + 2];
-        Integer[] firstLine = firstLineDecomposition(inputtedValues[0].split(" "));
-        for (int i = 0; i < firstLine.length; i++) {
-            result[i] = firstLine[i];
+
+    private ArrayList<Integer> inputHandler(BufferedReader bufferedReader) {
+        ArrayList<Integer> result = new ArrayList<>();
+        String line;
+        try {
+            firstLineDecomposition(bufferedReader.readLine().split(" "));
+            while ((line = bufferedReader.readLine()) != null && !line.isEmpty()) {
+                Integer number = Integer.parseInt(line.trim());
+                result.add(number);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        Integer previousNumber = -1;
-        for (int i = 1; i < inputtedValues.length; i++) {
-            if (lineValidation(inputtedValues[i], firstLine[0])) {
-                Integer temp = Integer.parseInt(inputtedValues[i]);
-                if (previousNumber == -1) {
-                    previousNumber = temp;
-                }
-                if (firstLine[1] == 1) {
-                    if (previousNumber < temp) {
-                        result[i + 2] = temp;
+        Integer previousNumber = result.getFirst();
+        for (int i = 1; i < result.size(); i++) {
+            if (lineValidation(result.get(i))) {
+                Integer temp = result.get(i);
+                if (typeOfSequence == 1 && virus != 1) {
+                    if (previousNumber <= temp) {
                         previousNumber = temp;
                     }
                     else {
@@ -42,18 +55,14 @@ public class Sort {
                         System.exit(1);
                     }
                 }
-                else if (firstLine[1] == 2) {
-                    if (previousNumber > temp) {
-                        result[i + 2] = temp;
+                else if (typeOfSequence == 2 && virus != 1) {
+                    if (previousNumber >= temp) {
                         previousNumber = temp;
                     }
                     else {
                         System.err.println("Error: Posloupnost neni usporadana!");
                         System.exit(1);
                     }
-                }
-                else {
-                    result[i + 2] = Integer.parseInt(inputtedValues[i]);
                 }
             }
             else {
@@ -61,38 +70,88 @@ public class Sort {
                 System.exit(1);
             }
         }
-        if ((result.length - 2) < 1000) {
+        if ((result.size()) < 1000) {
             System.err.println("Error: Posloupnost ma mene nez 1000 prvku!");
             System.exit(1);
         }
-        if ((result.length - 2) > 2000000) {
+        if ((result.size()) > 2000000) {
             System.err.println("Error: Posloupnost ma vic nez 2000000 prvku!");
             System.exit(1);
         }
         return result;
     }
 
-    private Integer[] firstLineDecomposition(String[] inputLine) {
-        if (Integer.parseInt(inputLine[0]) < 1) {
+    private void firstLineDecomposition(String[] inputLine) {
+        maximumValue = Integer.parseInt(inputLine[0]);
+        typeOfSequence = Integer.parseInt(inputLine[1]);
+        virus = Integer.parseInt(inputLine[2]);
+        if (maximumValue < 1) {
             System.err.println("Error: Maximum neni kladne!");
             System.exit(1);
         }
-        else if (Integer.parseInt(inputLine[1]) < 0 || 2 < Integer.parseInt(inputLine[1])) {
+        else if (typeOfSequence < 0 || 2 < typeOfSequence) {
             System.err.println("Error: Neznamy typ razeni posloupnosti!");
             System.exit(1);
         }
-        else if (Integer.parseInt(inputLine[2]) < 0 || 1 < Integer.parseInt(inputLine[2])) {
+        else if (virus < 0 || 1 < virus) {
             System.err.println("Error: Nelze urcit, zda posloupnost napadl virus!");
             System.exit(1);
         }
-        return new Integer[]{Integer.parseInt(inputLine[0]), Integer.parseInt(inputLine[1]),
-                Integer.parseInt(inputLine[2])};
     }
 
-    private Boolean lineValidation (String inputLine, Integer maximumValue) {
-        if (Integer.parseInt(inputLine) < 1 && maximumValue > Integer.parseInt(inputLine)) {
-            return false;
+    private Boolean lineValidation(Integer inputInteger) {
+        return inputInteger >= 1 && maximumValue >= inputInteger;
+    }
+
+    private void outputSequence(ArrayList<Integer> input) {
+        try {
+            BufferedWriter outputSequence = new BufferedWriter(new OutputStreamWriter(System.out));
+            for (int number : input) {
+                outputSequence.write(number);
+                outputSequence.newLine();
+            }
+            outputSequence.flush();
+            outputSequence.close();
         }
-        return true;
+        catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+    }
+
+    private ArrayList<Integer> radix(ArrayList<Integer> inputArray, Integer maximum) {
+        Integer[][] radixArray = new Integer[10][inputArray.size()];
+        int[] counts = new int[10];
+        Integer divider = 1;
+        while (maximum / divider > 0) {
+            for (Integer value: inputArray) {
+                int radixIndex = (value / divider) % 10;
+                radixArray[radixIndex][counts[radixIndex]] = value;
+                counts[radixIndex]++;
+            }
+            int position = 0;
+            for (int i = 0; i < 10; i++) {
+                for (int j = 0; j < counts[i]; j++) {
+                    inputArray.set(position, radixArray[i][j]);
+                    position++;
+                }
+                counts[i] = 0;
+            }
+            divider *= 10;
+        }
+        return inputArray;
+    }
+
+    private ArrayList<Integer> insertion(ArrayList<Integer> inputArray) {
+        int arrayLength = inputArray.size();
+        for (int i = 1; i < arrayLength; i++) {
+            int carriage = inputArray.get(i);
+            int j = i - 1;
+            while (j >= 0 && inputArray.get(j) > carriage) {
+                inputArray.set(j + 1, inputArray.get(j));
+                j = j - 1;
+            }
+            inputArray.set(j + 1, carriage);
+        }
+        return inputArray;
     }
 }
