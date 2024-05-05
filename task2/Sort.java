@@ -128,9 +128,9 @@ public class Sort {
     }
 
     /**
-     * Function for checking inputted Integer value if it is inside interval [1;maximumValue]
+     * Function for checking inputted Integer value if it is inside an interval [1;maximumValue]
      * @param inputInteger take Integer with value for checking
-     * @return Boolean value true if inputted value is inside interval and false if not
+     * @return Boolean value true if inputted value is inside an interval and false if not
      */
     private Boolean lineValidation(Integer inputInteger) {
         return inputInteger >= 1 && maximumValue >= inputInteger;

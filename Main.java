@@ -1,8 +1,9 @@
 import task2.Sort;
+import task3.Hash;
 
 public class Main {
     public static void main(String[] args) {
-        Sort sort = new Sort();
-        sort.homeWork02();
+        Hash hash = new Hash();
+        hash.hashing();
     }
 }
