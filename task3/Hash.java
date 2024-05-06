@@ -1,15 +1,15 @@
 package task3;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
 public class Hash {
-    private final int baseTableLength = 11;
-    private final int[][] reporters = {{baseTableLength, 0}, {baseTableLength, 0}, {baseTableLength, 0},
-            {baseTableLength, 0}, {baseTableLength, 0}};
+    private final int[][] reporters = {{11, 0, 11}, {11, 0, 11}, {11, 0, 11}, {11, 0, 11}, {11, 0, 11}};
     private final String[][] hashTables = new String[5][];
-    private Map<Character, Integer> alphabet = new HashMap<>();
+    private final int[][] newsTable = new int[5][];
+    private final Map<Character, Integer> alphabet = new HashMap<>();
     private int currentWriter = -1;
 
     public void hashing() {
@@ -46,6 +46,7 @@ public class Hash {
                         for (int i = 0; i < settings.length; i++) {
                             try {
                                 reporters[i][0] = Integer.parseInt(settings[i]);
+                                reporters[i][2] = reporters[i][0];
                             }
                             catch (Exception e) {
                                 System.err.println(e.getMessage());
@@ -66,7 +67,7 @@ public class Hash {
                 }
                 case "Print": {
                     if (currentWriter != -1) {
-                        dataPrinter(currentWriter);
+                        dataPrinter(currentWriter - 1);
                     }
                     else {
                         System.err.println("Error: Chybny vstup!");
@@ -95,7 +96,7 @@ public class Hash {
                         insertNews(command[1]);
                     }
                     if (deleteNews) {
-                        System.out.println("delete news");
+                        deleteNews(command[1]);
                     }
                     break;
                 }
@@ -164,25 +165,33 @@ public class Hash {
 
     private void dataPrinter(int writerNumber) {
         switch (writerNumber) {
-            case 1: {
+            case 0: {
                 System.out.print("Mirek\n\t" + reporters[writerNumber][0] + " ");
                 System.out.println(reporters[writerNumber][1]);
+                break;
             }
-            case 2: {
+            case 1: {
                 System.out.print("Jarka\n\t" + reporters[writerNumber][0] + " ");
                 System.out.println(reporters[writerNumber][1]);
+                break;
             }
-            case 3: {
+            case 2: {
                 System.out.print("Jindra\n\t" + reporters[writerNumber][0] + " ");
                 System.out.println(reporters[writerNumber][1]);
+                break;
             }
-            case 4: {
+            case 3: {
                 System.out.print("Rychlonozka\n\t" + reporters[writerNumber][0] + " ");
                 System.out.println(reporters[writerNumber][1]);
+                break;
             }
-            case 5: {
+            case 4: {
                 System.out.print("Cervenacek\n\t" + reporters[writerNumber][0] + " ");
                 System.out.println(reporters[writerNumber][1]);
+                break;
+            }
+            default: {
+                System.err.println("Error in dataPrinter with writeNumber = " + writerNumber);
             }
         }
     }
@@ -190,6 +199,7 @@ public class Hash {
     private void tablesInitialization() {
         for (int i = 0; i < reporters.length; i++) {
             hashTables[i] = new String[reporters[i][0]];
+            newsTable[i] = new int[reporters[i][0]];
         }
         for (int i = 0; i < 26; i++) {
             alphabet.put((char) (i + 97), i + 1);
@@ -197,10 +207,50 @@ public class Hash {
         alphabet.put(' ', 31);
     }
 
-    private void insertNews (String inputString) {
+    private void insertNews(String inputString) {
         for (int i = 0; i < reporters.length; i++) {
-            hashTables[i][Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[i][0]))] = inputString;
-            reporters[i][1]++;
+            int index = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[i][0]));
+            if (hashTables[i][index] == null) {
+                hashTables[i][index] = inputString;
+                newsTable[i][index]++;
+                reporters[i][1]++;
+            }
+            else {
+                if (!hashTables[i][index].equals(inputString)) {
+                    linearProbing(index, i, inputString);
+                }
+                else {
+                    newsTable[i][index]++;
+                }
+            }
+            increaseTable(i);
+        }
+    }
+
+    private void deleteNews(String inputString) {
+        System.out.println(inputString);
+    }
+
+    private void linearProbing(int index, int reporter, String inputString) {
+        boolean flag = true;
+        int startIndex = index;
+        while (flag) {
+            index++;
+            if (index >= hashTables[reporter].length) {
+                index = 0;
+            }
+            if (index == startIndex) {
+                System.err.println("Error in linearProbing");
+                System.exit(1);
+            }
+            if (hashTables[reporter][index] == null) {
+                hashTables[reporter][index] = inputString;
+                reporters[reporter][1]++;
+                flag = false;
+            }
+            else if (hashTables[reporter][index].equals(inputString)) {
+                newsTable[reporter][index]++;
+            }
         }
     }
 
@@ -214,5 +264,14 @@ public class Hash {
             hash += alphabet.get(inputtedCharArray[i]) * (power(i));
         }
         return (long) (hash % tableLength);
+    }
+
+    private void increaseTable(int reporterNumber) {
+        if (reporters[reporterNumber][1] >= reporters[reporterNumber][0] * 0.7) {
+            hashTables[reporterNumber] = Arrays.copyOf(hashTables[reporterNumber],
+                    hashTables[reporterNumber].length * 2);
+            newsTable[reporterNumber] = Arrays.copyOf(newsTable[reporterNumber],
+                    newsTable[reporterNumber].length * 2);
+        }
     }
 }
