@@ -96,7 +96,7 @@ public class Hash {
                         insertNews(command[1]);
                     }
                     if (deleteNews) {
-                        deleteNews(command[1]);
+                        deleteNews(currentWriter, command[1]);
                     }
                     break;
                 }
@@ -217,7 +217,19 @@ public class Hash {
             }
             else {
                 if (!hashTables[i][index].equals(inputString)) {
-                    linearProbing(index, i, inputString);
+                    int newIndex = linearProbing(index, i, inputString);
+                    if (newIndex != -2 && newIndex != -1) {
+                        hashTables[i][newIndex] = inputString;
+                        newsTable[i][newIndex]++;
+                        reporters[i][1]++;
+                    }
+                    else if (newIndex == -1) {
+                        newsTable[i][index]++;
+                    }
+                    else {
+                        System.err.println("Error in insertNews");
+                        System.exit(1);
+                    }
                 }
                 else {
                     newsTable[i][index]++;
@@ -227,14 +239,56 @@ public class Hash {
         }
     }
 
-    private void deleteNews(String inputString) {
-        System.out.println(inputString);
+    private void deleteNews(int reporter, String inputString) {
+        int index = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[reporter][0]));
+        if (hashTables[reporter][index].equals(inputString)) {
+            if (newsTable[reporter][index] > 1) {
+                newsTable[reporter][index]--;
+            }
+            else if (newsTable[reporter][index] == 1){
+                hashTables[reporter][index] = null;
+                reporters[reporter][1]--;
+            }
+            else {
+                System.err.println("Error in deleteNews");
+                System.exit(1);
+            }
+        }
+        else {
+            boolean flag = true;
+            int newIndex = index;
+            while (flag) {
+                newIndex++;
+                if (newIndex >= hashTables[reporter].length) {
+                    newIndex = 0;
+                }
+                if (newIndex == index) {
+                    System.err.println("Error in deleteNews");
+                    System.exit(1);
+                }
+                if (hashTables[reporter][newIndex].equals(inputString)) {
+                    if (newsTable[reporter][newIndex] > 1) {
+                        newsTable[reporter][newIndex]--;
+                        flag = false;
+                    }
+                    else if (newsTable[reporter][newIndex] == 1){
+                        hashTables[reporter][newIndex] = null;
+                        reporters[reporter][1]--;
+                        flag = false;
+                    }
+                    else {
+                        System.err.println("Error in deleteNews");
+                        System.exit(1);
+                    }
+                }
+            }
+        }
+        decreaseTable(reporter);
     }
 
-    private void linearProbing(int index, int reporter, String inputString) {
-        boolean flag = true;
+    private int linearProbing(int index, int reporter, String inputString) {
         int startIndex = index;
-        while (flag) {
+        while (true) {
             index++;
             if (index >= hashTables[reporter].length) {
                 index = 0;
@@ -244,12 +298,10 @@ public class Hash {
                 System.exit(1);
             }
             if (hashTables[reporter][index] == null) {
-                hashTables[reporter][index] = inputString;
-                reporters[reporter][1]++;
-                flag = false;
+                return index;
             }
             else if (hashTables[reporter][index].equals(inputString)) {
-                newsTable[reporter][index]++;
+                return -1;
             }
         }
     }
@@ -268,6 +320,15 @@ public class Hash {
 
     private void increaseTable(int reporterNumber) {
         if (reporters[reporterNumber][1] >= reporters[reporterNumber][0] * 0.7) {
+            hashTables[reporterNumber] = Arrays.copyOf(hashTables[reporterNumber],
+                    hashTables[reporterNumber].length * 2);
+            newsTable[reporterNumber] = Arrays.copyOf(newsTable[reporterNumber],
+                    newsTable[reporterNumber].length * 2);
+        }
+    }
+
+    private void decreaseTable(int reporterNumber) {
+        if (reporters[reporterNumber][1] >= reporters[reporterNumber][0] * 0.3) {
             hashTables[reporterNumber] = Arrays.copyOf(hashTables[reporterNumber],
                     hashTables[reporterNumber].length * 2);
             newsTable[reporterNumber] = Arrays.copyOf(newsTable[reporterNumber],
