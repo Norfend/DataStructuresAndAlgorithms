@@ -1,6 +1,5 @@
 package task3;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -17,6 +16,7 @@ public class Hash {
         boolean acceptedSettings = false;
         boolean deleteNews = false;
         boolean initialization = false;
+        boolean printing = false;
         Scanner scanner = new Scanner(System.in);
         String[] command;
 
@@ -33,6 +33,7 @@ public class Hash {
                 case "Input news": {
                     acceptNews = true;
                     deleteNews = false;
+                    printing = false;
                     currentWriter = -1;
                     if (!initialization) {
                         tablesInitialization();
@@ -63,11 +64,14 @@ public class Hash {
                     currentWriter = Integer.parseInt(command[1]);
                     acceptNews = false;
                     deleteNews = false;
+                    printing = true;
                     break;
                 }
                 case "Print": {
                     if (currentWriter != -1) {
                         dataPrinter(currentWriter - 1);
+                        acceptNews = false;
+                        deleteNews = false;
                     }
                     else {
                         System.err.println("Error: Chybny vstup!");
@@ -77,6 +81,7 @@ public class Hash {
                 case "Delete": {
                     if (currentWriter != -1) {
                         acceptNews = false;
+                        //printing = false;
                         deleteNews = true;
                     }
                     else {
@@ -93,10 +98,15 @@ public class Hash {
                 }
                 case "News": {
                     if (acceptNews) {
-                        insertNews(command[1]);
+                        for (int i = 0; i < reporters.length; i++) {
+                            insertNews(command[1], i);
+                        }
                     }
-                    if (deleteNews) {
-                        deleteNews(currentWriter, command[1]);
+                    else if (deleteNews) {
+                        deleteNews(command[1], currentWriter - 1);
+                    }
+                    else if (printing) {
+                        newsPrinter(command[1], currentWriter - 1);
                     }
                     break;
                 }
@@ -163,35 +173,63 @@ public class Hash {
         return inputString.substring(startOfNews, endOfNews);
     }
 
-    private void dataPrinter(int writerNumber) {
-        switch (writerNumber) {
+    private void dataPrinter(int reporter) {
+        switch (reporter) {
             case 0: {
-                System.out.print("Mirek\n\t" + reporters[writerNumber][0] + " ");
-                System.out.println(reporters[writerNumber][1]);
+                System.out.print("Mirek\n\t" + reporters[reporter][0] + " ");
+                System.out.println(reporters[reporter][1]);
                 break;
             }
             case 1: {
-                System.out.print("Jarka\n\t" + reporters[writerNumber][0] + " ");
-                System.out.println(reporters[writerNumber][1]);
+                System.out.print("Jarka\n\t" + reporters[reporter][0] + " ");
+                System.out.println(reporters[reporter][1]);
                 break;
             }
             case 2: {
-                System.out.print("Jindra\n\t" + reporters[writerNumber][0] + " ");
-                System.out.println(reporters[writerNumber][1]);
+                System.out.print("Jindra\n\t" + reporters[reporter][0] + " ");
+                System.out.println(reporters[reporter][1]);
                 break;
             }
             case 3: {
-                System.out.print("Rychlonozka\n\t" + reporters[writerNumber][0] + " ");
-                System.out.println(reporters[writerNumber][1]);
+                System.out.print("Rychlonozka\n\t" + reporters[reporter][0] + " ");
+                System.out.println(reporters[reporter][1]);
                 break;
             }
             case 4: {
-                System.out.print("Cervenacek\n\t" + reporters[writerNumber][0] + " ");
-                System.out.println(reporters[writerNumber][1]);
+                System.out.print("Cervenacek\n\t" + reporters[reporter][0] + " ");
+                System.out.println(reporters[reporter][1]);
                 break;
             }
             default: {
-                System.err.println("Error in dataPrinter with writeNumber = " + writerNumber);
+                System.err.println("Error in dataPrinter with writeNumber = " + reporter);
+            }
+        }
+    }
+
+    private void newsPrinter(String inputString, int reporter) {
+        int newsIndex = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[reporter][0]));
+        if (hashTables[reporter][newsIndex] != null && hashTables[reporter][newsIndex].equals(inputString)) {
+            System.out.print("\t" + inputString + " " + newsIndex + " " + newsTable[reporter][newsIndex]);
+            System.out.println();
+        }
+        else {
+            boolean flag = true;
+            int newIndex = newsIndex;
+            while (flag) {
+                newIndex++;
+                if (newIndex >= hashTables[reporter].length) {
+                    newIndex = 0;
+                }
+                if (newIndex == newsIndex) {
+                    System.out.print("\t" + inputString + " " + -1 + " " + newsTable[reporter][newIndex]);
+                    System.out.println();
+                    break;
+                }
+                if (hashTables[reporter][newIndex] != null && hashTables[reporter][newIndex].equals(inputString)) {
+                    System.out.print("\t" + inputString + " " + newIndex + " " + newsTable[reporter][newIndex]);
+                    System.out.println();
+                    flag = false;
+                }
             }
         }
     }
@@ -207,47 +245,47 @@ public class Hash {
         alphabet.put(' ', 31);
     }
 
-    private void insertNews(String inputString) {
-        for (int i = 0; i < reporters.length; i++) {
-            int index = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[i][0]));
-            if (hashTables[i][index] == null) {
-                hashTables[i][index] = inputString;
-                newsTable[i][index]++;
-                reporters[i][1]++;
-            }
-            else {
-                if (!hashTables[i][index].equals(inputString)) {
-                    int newIndex = linearProbing(index, i, inputString);
-                    if (newIndex != -2 && newIndex != -1) {
-                        hashTables[i][newIndex] = inputString;
-                        newsTable[i][newIndex]++;
-                        reporters[i][1]++;
-                    }
-                    else if (newIndex == -1) {
-                        newsTable[i][index]++;
-                    }
-                    else {
-                        System.err.println("Error in insertNews");
-                        System.exit(1);
-                    }
+    private void insertNews(String inputString, int reporter) {
+        int index = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[reporter][0]));
+        if (hashTables[reporter][index] == null) {
+            hashTables[reporter][index] = inputString;
+            newsTable[reporter][index]++;
+            reporters[reporter][1]++;
+        }
+        else {
+            if (!hashTables[reporter][index].equals(inputString)) {
+                int newIndex = linearProbing(index, inputString, reporter);
+                if (hashTables[reporter][newIndex] == null) {
+                    hashTables[reporter][newIndex] = inputString;
+                    newsTable[reporter][newIndex]++;
+                    reporters[reporter][1]++;
+                }
+                else if (!hashTables[reporter][newIndex].equals(inputString)) {
+                    hashTables[reporter][newIndex] = inputString;
+                    newsTable[reporter][newIndex]++;
+                    reporters[reporter][1]++;
                 }
                 else {
-                    newsTable[i][index]++;
+                    newsTable[reporter][newIndex]++;
                 }
             }
-            increaseTable(i);
+            else {
+                newsTable[reporter][index]++;
+            }
         }
+        reHash(reporter, "Inserting");
     }
 
-    private void deleteNews(int reporter, String inputString) {
+    private void deleteNews(String inputString, int reporter) {
         int index = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[reporter][0]));
-        if (hashTables[reporter][index].equals(inputString)) {
+        if (hashTables[reporter][index] != null && hashTables[reporter][index].equals(inputString)) {
             if (newsTable[reporter][index] > 1) {
                 newsTable[reporter][index]--;
             }
             else if (newsTable[reporter][index] == 1){
-                hashTables[reporter][index] = null;
+                hashTables[reporter][index] = "-1";
                 reporters[reporter][1]--;
+                newsTable[reporter][index]--;
             }
             else {
                 System.err.println("Error in deleteNews");
@@ -263,16 +301,16 @@ public class Hash {
                     newIndex = 0;
                 }
                 if (newIndex == index) {
-                    System.err.println("Error in deleteNews");
-                    System.exit(1);
+                    break;
                 }
-                if (hashTables[reporter][newIndex].equals(inputString)) {
+                if (hashTables[reporter][newIndex] != null && hashTables[reporter][newIndex].equals(inputString)) {
                     if (newsTable[reporter][newIndex] > 1) {
                         newsTable[reporter][newIndex]--;
                         flag = false;
                     }
                     else if (newsTable[reporter][newIndex] == 1){
-                        hashTables[reporter][newIndex] = null;
+                        hashTables[reporter][newIndex] = "-1";
+                        newsTable[reporter][newIndex]--;
                         reporters[reporter][1]--;
                         flag = false;
                     }
@@ -283,56 +321,92 @@ public class Hash {
                 }
             }
         }
-        decreaseTable(reporter);
+        reHash(reporter, "Deleting");
     }
 
-    private int linearProbing(int index, int reporter, String inputString) {
+    private int linearProbing(int index, String inputString, int reporter) {
         int startIndex = index;
+        int potentialIndex = -1;
         while (true) {
-            index++;
-            if (index >= hashTables[reporter].length) {
-                index = 0;
+            startIndex++;
+            if (startIndex >= hashTables[reporter].length) {
+                startIndex = 0;
             }
-            if (index == startIndex) {
-                System.err.println("Error in linearProbing");
-                System.exit(1);
+            if (startIndex == index) {
+                return potentialIndex;
             }
-            if (hashTables[reporter][index] == null) {
-                return index;
+            if (hashTables[reporter][startIndex] == null || hashTables[reporter][startIndex].equals(inputString)) {
+                return startIndex;
             }
-            else if (hashTables[reporter][index].equals(inputString)) {
-                return -1;
+            if (hashTables[reporter][startIndex].equals("-1")) {
+                potentialIndex = startIndex;
             }
         }
     }
 
-    private double power(int inputPower) {
-        return Math.pow(32, inputPower);
+    private long power(int inputPower, int tableLength) {
+        long result = 1L;
+        for (long i = 0; i < inputPower; i++) {
+            result = (result * 32) % tableLength;
+        }
+        return result;
     }
 
     private long hashFunction(char[] inputtedCharArray, int tableLength) {
-        double hash = 0;
+        long hash = 0;
         for (int i = 0; i < inputtedCharArray.length; i++) {
-            hash += alphabet.get(inputtedCharArray[i]) * (power(i));
+            int letter = alphabet.get(inputtedCharArray[i]);
+            long power = power(i, tableLength);
+            long temp = letter * power;
+            hash += temp;
         }
-        return (long) (hash % tableLength);
+        return hash % tableLength;
     }
 
-    private void increaseTable(int reporterNumber) {
-        if (reporters[reporterNumber][1] >= reporters[reporterNumber][0] * 0.7) {
-            hashTables[reporterNumber] = Arrays.copyOf(hashTables[reporterNumber],
-                    hashTables[reporterNumber].length * 2);
-            newsTable[reporterNumber] = Arrays.copyOf(newsTable[reporterNumber],
-                    newsTable[reporterNumber].length * 2);
+    private void reHash(int reporter, String operationType) {
+        boolean reHashing = false;
+        if (operationType.equals("Inserting") && reporters[reporter][1] >= reporters[reporter][0] * 0.7) {
+            reporters[reporter][0] = reporters[reporter][0] * 2;
+            reHashing = true;
         }
-    }
-
-    private void decreaseTable(int reporterNumber) {
-        if (reporters[reporterNumber][1] >= reporters[reporterNumber][0] * 0.3) {
-            hashTables[reporterNumber] = Arrays.copyOf(hashTables[reporterNumber],
-                    hashTables[reporterNumber].length * 2);
-            newsTable[reporterNumber] = Arrays.copyOf(newsTable[reporterNumber],
-                    newsTable[reporterNumber].length * 2);
+        else if (operationType.equals("Deleting") && reporters[reporter][1] <= reporters[reporter][0] * 0.3) {
+            reporters[reporter][0] = Math.max((reporters[reporter][1] / 2), reporters[reporter][2]);
+            reHashing = true;
+        }
+        if (reHashing) {
+            String[] newHashTable = new String[reporters[reporter][0]];
+            int[] newNewsTable = new int[reporters[reporter][0]];
+            for (int i = 0; i < hashTables[reporter].length; i++) {
+                if (hashTables[reporter][i] != null) {
+                    int newIndex = Math.toIntExact(hashFunction(hashTables[reporter][i].toCharArray(),
+                            reporters[reporter][0]));
+                    if (newHashTable[newIndex] == null) {
+                        newHashTable[newIndex] = hashTables[reporter][i];
+                        newNewsTable[newIndex] = newsTable[reporter][i];
+                    }
+                    else {
+                        boolean flag = true;
+                        int startIndex = newIndex;
+                        while (flag) {
+                            startIndex++;
+                            if (startIndex >= newHashTable.length) {
+                                startIndex = 0;
+                            }
+                            if (startIndex == newIndex) {
+                                System.err.println("Error in reHash");
+                                System.exit(1);
+                            }
+                            if (newHashTable[startIndex] == null) {
+                                newHashTable[startIndex] = hashTables[reporter][i];
+                                newNewsTable[startIndex] = newsTable[reporter][i];
+                                flag = false;
+                            }
+                        }
+                    }
+                }
+            }
+            hashTables[reporter] = newHashTable;
+            newsTable[reporter] = newNewsTable;
         }
     }
 }

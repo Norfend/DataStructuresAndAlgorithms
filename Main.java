@@ -1,4 +1,3 @@
-import task2.Sort;
 import task3.Hash;
 
 public class Main {
