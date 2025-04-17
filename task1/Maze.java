@@ -13,7 +13,6 @@ import static java.lang.System.exit;
  */
 
 public class Maze {
-    //Static variable for the maze
     private static final ArrayList<char[]> labyrinth = new ArrayList<>();
 
     public static void main(String[] args) {
