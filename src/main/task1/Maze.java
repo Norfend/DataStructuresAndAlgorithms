@@ -43,24 +43,24 @@ public class Maze {
 
             //Check labyrinth symbols
             if (!allowedCharactersMatcher.find()) {
-                errorChecker.setWrongSymbols();
+                ErrorChecker.setWrongSymbols();
             }
             
             //Check that labyrinth is rectangle
             if (temporary.length() != width) {
-                errorChecker.setNotRectangle();
+                ErrorChecker.setNotRectangle();
             }
 
             //Check labyrinth borders
             if (counter == 0) {
                 upperBorderMatcher = allowedUpperBorder.matcher(temporary);
                 if (! upperBorderMatcher.find()) {
-                    errorChecker.setWrongBorders();
+                    ErrorChecker.setWrongBorders();
                 }
             } else {
                 borderMatcher = allowedBorder.matcher(temporary);
                 if (! borderMatcher.find()) {
-                    errorChecker.setWrongBorders();
+                    ErrorChecker.setWrongBorders();
                 }
             }
 
@@ -70,12 +70,12 @@ public class Maze {
 
         //Check labyrinth width
         if (width < 5 || 100 < width) {
-            errorChecker.setWrongWidth();
+            ErrorChecker.setWrongWidth();
         }
 
         lowerBorderMatcher = allowedLowerBorder.matcher(new String(labyrinth.getLast()));
         if (! lowerBorderMatcher.find()) {
-            errorChecker.setWrongBorders();
+            ErrorChecker.setWrongBorders();
         }
 
         //Variables for entrance and exit of the maze
@@ -84,20 +84,20 @@ public class Maze {
 
         //Check labyrinth length
         if (labyrinth.size() < 5 || 50 < labyrinth.size()) {
-            errorChecker.setWrongLength();
+            ErrorChecker.setWrongLength();
         }
 
         //Check labyrinth entrance
         if (labyrinth.get(entrance.y)[entrance.x] != '.') {
-            errorChecker.setWrongEntrance();
+            ErrorChecker.setWrongEntrance();
         }
 
         //Check labyrinth exit
         if (labyrinth.get(exit.y)[exit.x] != '.') {
-            errorChecker.setWrongExit();
+            ErrorChecker.setWrongExit();
         }
 
-        errorChecker.printChecks();
+        ErrorChecker.printChecks();
 
         //Check path
         boolean[][] isVisited = new boolean[width][labyrinth.size()];
@@ -201,7 +201,7 @@ public class Maze {
         return result;
     }
 
-    private static class errorChecker {
+    private static class ErrorChecker {
         private static Boolean notRectangle = false;
         private static Boolean wrongEntrance = false;
         private static Boolean wrongExit = false;
@@ -243,7 +243,7 @@ public class Maze {
 
         public static void setWrongEntrance() {
             if (!wrongEntrance) {
-                errorChecker.wrongEntrance = true;
+                ErrorChecker.wrongEntrance = true;
             }
         }
 
