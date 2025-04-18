@@ -22,26 +22,37 @@ public class Sort {
         readInput();
         ErrorChecker.printChecks();
         if (typeOfSequence == 0) {
-            radix();
-            printArray(false);
+            chooseAlgorithm();
+            printArray();
         }
 
         if (virus == 0 && typeOfSequence == 1) {
-            printArray(false);
+            printArray();
         }
 
         if (virus == 0 && typeOfSequence == 2) {
-            printArray(true);
+            inputArray = reverseArrayCopy(inputArray);
+            printArray();
         }
 
         if (virus == 1 && typeOfSequence == 1) {
             insertion();
-            printArray(false);
+            printArray();
         }
 
         if (virus == 1 && typeOfSequence == 2) {
+            inputArray = reverseArrayCopy(inputArray);
             insertion();
-            printArray(true);
+            printArray();
+        }
+    }
+
+    private static void chooseAlgorithm() {
+        if (maximalValue <= 3 * elements) {
+            counting();
+        }
+        else {
+            radix();
         }
     }
 
@@ -66,27 +77,27 @@ public class Sort {
         elements++;
     }
 
-    private static void printArray(boolean reverse) {
-        try (BufferedOutputStream output = new BufferedOutputStream(System.out)){
-            if (! reverse) {
-                for (int i = 0; i < elements; i++) {
-                    String numStr = inputArray[i] + "\n";
-                    byte[] bytes = numStr.getBytes();
-
-                    output.write(bytes);
-                }
-            } else {
-                for (int i = elements - 1; i >= 0; i--) {
-                    String numStr = inputArray[i] + "\n";
-                    byte[] bytes = numStr.getBytes();
-
-                    output.write(bytes);
-                }
+    private static void printArray() {
+        try (BufferedOutputStream output = new BufferedOutputStream(System.out)) {
+            StringBuilder outBuffer = new StringBuilder();
+            for (int num: inputArray) {
+                outBuffer.append(num).append("\n");
             }
+
+            output.write(outBuffer.toString().getBytes());
             output.flush();
         } catch (Exception e) {
             System.err.println(e.getMessage());
         }
+        System.exit(0);
+    }
+
+    public static int[] reverseArrayCopy(int[] arr) {
+        int[] reversed = new int[arr.length];
+        for (int i = 0; i < arr.length; i++) {
+            reversed[i] = arr[arr.length - 1 - i];
+        }
+        return reversed;
     }
 
     private static void readInput() {
@@ -94,10 +105,11 @@ public class Sort {
         boolean header = false;
 
         try(BufferedInputStream input = new BufferedInputStream(System.in)) {
-            int symbol = input.read();
-            while (symbol != -1) {
-                Num.addSymbol(symbol);
-                if ((symbol == 10 || symbol == 13) && ! nextLine) {
+            byte[] buffer = input.readAllBytes();
+
+            for (byte b : buffer) {
+                Num.addSymbol(b);
+                if ((b == 10 || b == 13) && ! nextLine) {
                     nextLine = true;
                     if (header) {
                         addNumber(Integer.parseInt(Num.getNumber()));
@@ -108,21 +120,20 @@ public class Sort {
                 } else {
                     nextLine = false;
                 }
-                symbol = input.read();
-            }
-
-            inputArray = Arrays.copyOfRange(inputArray, 0, elements);
-
-            if (inputArray.length < 1000) {
-                ErrorChecker.setShortInput();
-            }
-
-            if (inputArray.length > 2000000) {
-                ErrorChecker.setLongInput();
             }
         }
         catch (Exception e) {
             System.err.println(e.getMessage());
+        }
+
+        inputArray = Arrays.copyOfRange(inputArray, 0, elements);
+
+        if (inputArray.length < 1000) {
+            ErrorChecker.setShortInput();
+        }
+
+        if (inputArray.length > 2000000) {
+            ErrorChecker.setLongInput();
         }
     }
 
@@ -160,6 +171,25 @@ public class Sort {
             }
             inputArray[j + 1] = carriage;
         }
+    }
+
+    public static void counting() {
+        int[] temporaryArray = new int[maximalValue + 1];
+        int[] outputArray = new int[elements];
+
+        for (int i = 0; i < elements; i++) {
+            temporaryArray[inputArray[i]]++;
+        }
+
+        for (int i = 1; i <= maximalValue; i++) {
+            temporaryArray[i] += temporaryArray[i - 1];
+        }
+
+        for (int i = elements - 1; i >= 0; i--) {
+            outputArray[temporaryArray[inputArray[i]] - 1] = inputArray[i];
+            temporaryArray[inputArray[i]]--;
+        }
+        inputArray = outputArray;
     }
 
     private static void radix() {
