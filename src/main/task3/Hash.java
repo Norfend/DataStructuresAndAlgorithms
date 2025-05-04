@@ -1,21 +1,23 @@
 package task3;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 public class Hash {
-    private final int[][] reporters = {{11, 0, 11}, {11, 0, 11}, {11, 0, 11}, {11, 0, 11}, {11, 0, 11}};
-    private final String[][] hashTables = new String[5][];
-    private final int[][] newsTable = new int[5][];
-    private final Map<Character, Integer> alphabet = new HashMap<>();
-    private int currentWriter = -1;
 
-    public void hashing() {
+    private static final Reporter[] reporters = {
+            new Reporter(11, 1, "Mirek"),
+            new Reporter(11, 2, "Jarka"),
+            new Reporter(11, 3, "Jindra"),
+            new Reporter(11, 4, "Rychlonozka"),
+            new Reporter(11, 5, "Cervenacek")
+    };
+
+    private static int currentWriter = -1;
+
+    public static void main(String[] args) {
         boolean acceptNews = false;
         boolean acceptedSettings = false;
         boolean deleteNews = false;
-        boolean initialization = false;
         boolean printing = false;
         Scanner scanner = new Scanner(System.in);
         String[] command;
@@ -35,10 +37,6 @@ public class Hash {
                     deleteNews = false;
                     printing = false;
                     currentWriter = -1;
-                    if (!initialization) {
-                        tablesInitialization();
-                        initialization = true;
-                    }
                     break;
                 }
                 case "Table settings": {
@@ -46,8 +44,9 @@ public class Hash {
                     if (settings.length <= reporters.length && !acceptedSettings) {
                         for (int i = 0; i < settings.length; i++) {
                             try {
-                                reporters[i][0] = Integer.parseInt(settings[i]);
-                                reporters[i][2] = reporters[i][0];
+                                reporters[i].setInitialTableSize(Integer.parseInt(settings[i]));
+                                reporters[i].setTableSize(Integer.parseInt(settings[i]));
+                                reporters[i].setNews(new Node[Integer.parseInt(settings[i])]);
                             }
                             catch (Exception e) {
                                 System.err.println(e.getMessage());
@@ -69,7 +68,7 @@ public class Hash {
                 }
                 case "Print": {
                     if (currentWriter != -1) {
-                        dataPrinter(currentWriter - 1);
+                        dataPrinter(reporters[currentWriter - 1]);
                         acceptNews = false;
                         deleteNews = false;
                     }
@@ -81,7 +80,6 @@ public class Hash {
                 case "Delete": {
                     if (currentWriter != -1) {
                         acceptNews = false;
-                        //printing = false;
                         deleteNews = true;
                     }
                     else {
@@ -98,15 +96,15 @@ public class Hash {
                 }
                 case "News": {
                     if (acceptNews) {
-                        for (int i = 0; i < reporters.length; i++) {
-                            insertNews(command[1], i);
+                        for (Reporter reporter : reporters) {
+                            reporter.addNews(command[1]);
                         }
                     }
                     else if (deleteNews) {
-                        deleteNews(command[1], currentWriter - 1);
+                        reporters[currentWriter - 1].deleteNews(command[1]);
                     }
                     else if (printing) {
-                        newsPrinter(command[1], currentWriter - 1);
+                        newsPrinter(command[1], reporters[currentWriter - 1]);
                     }
                     break;
                 }
@@ -117,9 +115,10 @@ public class Hash {
             }
             if (!acceptedSettings) acceptedSettings = true;
         }
+        System.out.println();
     }
 
-    private String[] lineParser(String inputLine) {
+    private static String[] lineParser(String inputLine) {
         char[] line = inputLine.toCharArray();
         String[] result = new String[2];
         if (line[0] == '#') {
@@ -154,7 +153,7 @@ public class Hash {
         return result;
     }
 
-    private String spaceCutter(String inputString) {
+    private static String spaceCutter(String inputString) {
         char[] stringWithoutSpaces = inputString.toCharArray();
         int startOfNews = 0;
         int endOfNews = stringWithoutSpaces.length;
@@ -173,240 +172,252 @@ public class Hash {
         return inputString.substring(startOfNews, endOfNews);
     }
 
-    private void dataPrinter(int reporter) {
-        switch (reporter) {
-            case 0: {
-                System.out.print("Mirek\n\t" + reporters[reporter][0] + " ");
-                System.out.println(reporters[reporter][1]);
-                break;
-            }
-            case 1: {
-                System.out.print("Jarka\n\t" + reporters[reporter][0] + " ");
-                System.out.println(reporters[reporter][1]);
-                break;
-            }
-            case 2: {
-                System.out.print("Jindra\n\t" + reporters[reporter][0] + " ");
-                System.out.println(reporters[reporter][1]);
-                break;
-            }
-            case 3: {
-                System.out.print("Rychlonozka\n\t" + reporters[reporter][0] + " ");
-                System.out.println(reporters[reporter][1]);
-                break;
-            }
-            case 4: {
-                System.out.print("Cervenacek\n\t" + reporters[reporter][0] + " ");
-                System.out.println(reporters[reporter][1]);
-                break;
-            }
-            default: {
-                System.err.println("Error in dataPrinter with writeNumber = " + reporter);
-            }
+    private static void dataPrinter(Reporter reporter) {
+        String result = reporter.getReporterName() + "\n\t" + reporter.getTableSize() + " " + reporter.getMessageCount();
+        System.out.println(result);
+    }
+
+    private static void newsPrinter(String inputString, Reporter reporter) {
+        Node node = reporter.printNews(inputString);
+        if (node != null) {
+            System.out.println(node);
+        } else {
+            System.out.println("\t" + inputString + " " + -1 + " " + 0);
         }
     }
 
-    private void newsPrinter(String inputString, int reporter) {
-        int newsIndex = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[reporter][0]));
-        if (hashTables[reporter][newsIndex] != null && hashTables[reporter][newsIndex].equals(inputString)) {
-            System.out.print("\t" + inputString + " " + newsIndex + " " + newsTable[reporter][newsIndex]);
-            System.out.println();
+    private static class Reporter {
+
+        private int messageCount = 0;
+
+        private int initialTableSize;
+
+        private int tableSize;
+
+        private final int reporterId;
+
+        private final String reporterName;
+
+        private Node[] news;
+
+        public Reporter(int initialSize, int id, String name) {
+            this.initialTableSize = initialSize;
+            this.tableSize = initialSize;
+            this.reporterId = id;
+            this.reporterName = name;
+            this.news = new Node[this.tableSize];
         }
-        else {
-            boolean flag = true;
-            int newIndex = newsIndex;
-            while (flag) {
-                newIndex++;
-                if (newIndex >= hashTables[reporter].length) {
-                    newIndex = 0;
+
+        public void addNews(String message) {
+            rehash(true);
+            int messageIndex = Math.toIntExact(hashCalculation(message));
+            if (! insertMessage(messageIndex, message))
+            {
+                int newMessageIndex = linearProbing(messageIndex, message, true);
+                insertMessage(newMessageIndex, message);
+            }
+        }
+
+        public void deleteNews(String message) {
+            rehash(false);
+            int messageIndex = Math.toIntExact(hashCalculation(message));
+            if (! deleteMessage(messageIndex, message))
+            {
+                int newMessageIndex = linearProbing(messageIndex, message, false);
+                if (newMessageIndex != -1) {
+                    deleteMessage(newMessageIndex, message);
                 }
-                if (newIndex == newsIndex) {
-                    System.out.print("\t" + inputString + " " + -1 + " " + newsTable[reporter][newIndex]);
-                    System.out.println();
+            }
+        }
+
+        public Node printNews(String message) {
+            for (Node node : getNews()) {
+                if (node != null && node.getNodeValue().equals(message)) {
+                    return node;
+                }
+            }
+            return null;
+        }
+
+        private boolean insertMessage(int index, String message) {
+            Node[] nodes = getNews();
+            if (nodes[index] == null) {
+                nodes[index] = new Node(index, 1, message);
+                setMessageCount(getMessageCount() + 1);
+                return true;
+            } else if (nodes[index].getNodeValue().equals(message)) {
+                nodes[index].setNodeCount(nodes[index].getNodeCount() + 1);
+                return true;
+            } else if (nodes[index].getNodeValue().equals("!")) {
+                nodes[index].setNodeValue(message);
+                nodes[index].setNodeCount(1);
+                setMessageCount(getMessageCount() + 1);
+                return true;
+            }
+            return false;
+        }
+
+        private boolean deleteMessage(int index, String message) {
+            Node[] nodes = getNews();
+            if (nodes[index] == null) {
+                return false;
+            }
+            if (nodes[index].getNodeValue().equals(message) && nodes[index].getNodeCount() > 1) {
+                nodes[index].setNodeCount(nodes[index].getNodeCount() - 1);
+                return true;
+            } else if (nodes[index].getNodeValue().equals(message) && nodes[index].getNodeCount() == 1) {
+                nodes[index].setNodeValue("!");
+                nodes[index].setNodeCount(0);
+                setMessageCount(getMessageCount() - 1);
+                return true;
+            }
+            return false;
+        }
+
+        private void rehash(boolean forInsert) {
+            int size = getTableSize();
+            int newsCount = getMessageCount();
+
+            if (forInsert && newsCount + 1 >= size * 0.7) {
+                Node[] oldNews = getNews();
+                setTableSize(getTableSize() * 2);
+                news = new Node[getTableSize()];
+                setMessageCount(0);
+                for (Node message: oldNews) {
+                    if (message != null && ! message.getNodeValue().equals("!")) {
+                        addNews(message.getNodeValue());
+                    }
+                }
+            } else if (! forInsert && newsCount - 1 <= size * 0.3) {
+                Node[] oldNews = getNews();
+                setTableSize(Math.max(newsCount / 2, getInitialTableSize()));
+                news = new Node[getTableSize()];
+                setMessageCount(0);
+                for (Node message: oldNews) {
+                    if (message != null && ! message.getNodeValue().equals("!")) {
+                        addNews(message.getNodeValue());
+                    }
+                }
+            }
+        }
+
+        private int linearProbing(int index, String message, boolean forInsert) {
+            Node[] nodes = getNews();
+            int originalIndex = index;
+            index = (index + 1) % getTableSize();
+            int tombstone = -1;
+
+            while (nodes[index] != null) {
+                if (nodes[index].getNodeValue().equals(message)) {
+                    return index;
+                }
+                if (forInsert && nodes[index].getNodeValue().equals("!") && tombstone == -1) {
+                    tombstone = index;
+                }
+                index = (index + 1) % getTableSize();
+
+                if (index == originalIndex) {
                     break;
                 }
-                if (hashTables[reporter][newIndex] != null && hashTables[reporter][newIndex].equals(inputString)) {
-                    System.out.print("\t" + inputString + " " + newIndex + " " + newsTable[reporter][newIndex]);
-                    System.out.println();
-                    flag = false;
-                }
             }
+            return forInsert ? (tombstone != -1 ? tombstone : index) : -1;
+        }
+
+        private long hashCalculation(String news) {
+            char[] newsAsCharArray = news.toCharArray();
+            long hash = 0;
+            long power = 1L;
+            for (char c : newsAsCharArray) {
+                int letter = getCharValue(c);
+                long temp = letter * power;
+                hash += temp;
+                power = (power * 32) % getTableSize();
+            }
+            return hash % getTableSize();
+        }
+
+        private int getCharValue(char c) {
+            return (c == ' ') ? 31 : (c - 'a' + 1);
+        }
+
+        public String getReporterName() {
+            return this.reporterName;
+        }
+
+        public int getReporterId() {
+            return this.reporterId;
+        }
+
+        public int getTableSize() {
+            return this.tableSize;
+        }
+
+        public void setTableSize(int tableSize) {
+            this.tableSize = tableSize;
+        }
+
+        public int getInitialTableSize() {
+            return this.initialTableSize;
+        }
+
+        public void setInitialTableSize(int initialTableSize) {
+            this.initialTableSize = initialTableSize;
+        }
+
+        public int getMessageCount() {
+            return this.messageCount;
+        }
+
+        public void setMessageCount(int messageCount) {
+            this.messageCount = messageCount;
+        }
+
+        public Node[] getNews() {
+            return this.news;
+        }
+
+        public void setNews(Node[] news) {
+            this.news = news;
         }
     }
 
-    private void tablesInitialization() {
-        for (int i = 0; i < reporters.length; i++) {
-            hashTables[i] = new String[reporters[i][0]];
-            newsTable[i] = new int[reporters[i][0]];
-        }
-        for (int i = 0; i < 26; i++) {
-            alphabet.put((char) (i + 97), i + 1);
-        }
-        alphabet.put(' ', 31);
-    }
+    private static class Node {
 
-    private void insertNews(String inputString, int reporter) {
-        int index = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[reporter][0]));
-        if (hashTables[reporter][index] == null) {
-            hashTables[reporter][index] = inputString;
-            newsTable[reporter][index]++;
-            reporters[reporter][1]++;
-        }
-        else {
-            if (!hashTables[reporter][index].equals(inputString)) {
-                int newIndex = linearProbing(index, inputString, reporter);
-                if (hashTables[reporter][newIndex] == null) {
-                    hashTables[reporter][newIndex] = inputString;
-                    newsTable[reporter][newIndex]++;
-                    reporters[reporter][1]++;
-                }
-                else if (!hashTables[reporter][newIndex].equals(inputString)) {
-                    hashTables[reporter][newIndex] = inputString;
-                    newsTable[reporter][newIndex]++;
-                    reporters[reporter][1]++;
-                }
-                else {
-                    newsTable[reporter][newIndex]++;
-                }
-            }
-            else {
-                newsTable[reporter][index]++;
-            }
-        }
-        reHash(reporter, "Inserting");
-    }
+        private final int nodeId;
 
-    private void deleteNews(String inputString, int reporter) {
-        int index = Math.toIntExact(hashFunction(inputString.toCharArray(), reporters[reporter][0]));
-        if (hashTables[reporter][index] != null && hashTables[reporter][index].equals(inputString)) {
-            if (newsTable[reporter][index] > 1) {
-                newsTable[reporter][index]--;
-            }
-            else if (newsTable[reporter][index] == 1){
-                hashTables[reporter][index] = "-1";
-                reporters[reporter][1]--;
-                newsTable[reporter][index]--;
-            }
-            else {
-                System.err.println("Error in deleteNews");
-                System.exit(1);
-            }
-        }
-        else {
-            boolean flag = true;
-            int newIndex = index;
-            while (flag) {
-                newIndex++;
-                if (newIndex >= hashTables[reporter].length) {
-                    newIndex = 0;
-                }
-                if (newIndex == index) {
-                    break;
-                }
-                if (hashTables[reporter][newIndex] != null && hashTables[reporter][newIndex].equals(inputString)) {
-                    if (newsTable[reporter][newIndex] > 1) {
-                        newsTable[reporter][newIndex]--;
-                        flag = false;
-                    }
-                    else if (newsTable[reporter][newIndex] == 1){
-                        hashTables[reporter][newIndex] = "-1";
-                        newsTable[reporter][newIndex]--;
-                        reporters[reporter][1]--;
-                        flag = false;
-                    }
-                    else {
-                        System.err.println("Error in deleteNews");
-                        System.exit(1);
-                    }
-                }
-            }
-        }
-        reHash(reporter, "Deleting");
-    }
+        private int nodeCount;
 
-    private int linearProbing(int index, String inputString, int reporter) {
-        int startIndex = index;
-        int potentialIndex = -1;
-        while (true) {
-            startIndex++;
-            if (startIndex >= hashTables[reporter].length) {
-                startIndex = 0;
-            }
-            if (startIndex == index) {
-                return potentialIndex;
-            }
-            if (hashTables[reporter][startIndex] == null || hashTables[reporter][startIndex].equals(inputString)) {
-                return startIndex;
-            }
-            if (hashTables[reporter][startIndex].equals("-1")) {
-                potentialIndex = startIndex;
-            }
-        }
-    }
+        private String nodeValue;
 
-    private long power(int inputPower, int tableLength) {
-        long result = 1L;
-        for (long i = 0; i < inputPower; i++) {
-            result = (result * 32) % tableLength;
+        public Node(int id, int count, String value) {
+            this.nodeId = id;
+            this.nodeCount = count;
+            this.nodeValue = value;
         }
-        return result;
-    }
 
-    private long hashFunction(char[] inputtedCharArray, int tableLength) {
-        long hash = 0;
-        for (int i = 0; i < inputtedCharArray.length; i++) {
-            int letter = alphabet.get(inputtedCharArray[i]);
-            long power = power(i, tableLength);
-            long temp = letter * power;
-            hash += temp;
+        public int getNodeId() {
+            return nodeId;
         }
-        return hash % tableLength;
-    }
 
-    private void reHash(int reporter, String operationType) {
-        boolean reHashing = false;
-        if (operationType.equals("Inserting") && reporters[reporter][1] >= reporters[reporter][0] * 0.7) {
-            reporters[reporter][0] = reporters[reporter][0] * 2;
-            reHashing = true;
+        public int getNodeCount() {
+            return this.nodeCount;
         }
-        else if (operationType.equals("Deleting") && reporters[reporter][1] <= reporters[reporter][0] * 0.3) {
-            reporters[reporter][0] = Math.max((reporters[reporter][1] / 2), reporters[reporter][2]);
-            reHashing = true;
+
+        public void setNodeCount(int nodeCount) {
+            this.nodeCount = nodeCount;
         }
-        if (reHashing) {
-            String[] newHashTable = new String[reporters[reporter][0]];
-            int[] newNewsTable = new int[reporters[reporter][0]];
-            for (int i = 0; i < hashTables[reporter].length; i++) {
-                if (hashTables[reporter][i] != null) {
-                    int newIndex = Math.toIntExact(hashFunction(hashTables[reporter][i].toCharArray(),
-                            reporters[reporter][0]));
-                    if (newHashTable[newIndex] == null) {
-                        newHashTable[newIndex] = hashTables[reporter][i];
-                        newNewsTable[newIndex] = newsTable[reporter][i];
-                    }
-                    else {
-                        boolean flag = true;
-                        int startIndex = newIndex;
-                        while (flag) {
-                            startIndex++;
-                            if (startIndex >= newHashTable.length) {
-                                startIndex = 0;
-                            }
-                            if (startIndex == newIndex) {
-                                System.err.println("Error in reHash");
-                                System.exit(1);
-                            }
-                            if (newHashTable[startIndex] == null) {
-                                newHashTable[startIndex] = hashTables[reporter][i];
-                                newNewsTable[startIndex] = newsTable[reporter][i];
-                                flag = false;
-                            }
-                        }
-                    }
-                }
-            }
-            hashTables[reporter] = newHashTable;
-            newsTable[reporter] = newNewsTable;
+
+        public String getNodeValue() {
+            return this.nodeValue;
+        }
+
+        public void setNodeValue(String nodeValue) {
+            this.nodeValue = nodeValue;
+        }
+
+        @Override
+        public String toString() {
+            return "\t" + getNodeValue() + " " + getNodeId() + " " + getNodeCount();
         }
     }
 }
