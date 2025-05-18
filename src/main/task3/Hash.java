@@ -1,15 +1,19 @@
 package task3;
 
-import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
+import static java.lang.Math.toIntExact;
 
 public class Hash {
 
     private static final Reporter[] reporters = {
-            new Reporter(11, 1, "Mirek"),
-            new Reporter(11, 2, "Jarka"),
-            new Reporter(11, 3, "Jindra"),
-            new Reporter(11, 4, "Rychlonozka"),
-            new Reporter(11, 5, "Cervenacek")
+            new Reporter(11, "Mirek"),
+            new Reporter(11, "Jarka"),
+            new Reporter(11, "Jindra"),
+            new Reporter(11, "Rychlonozka"),
+            new Reporter(11, "Cervenacek")
     };
 
     private static int currentWriter = -1;
@@ -19,103 +23,100 @@ public class Hash {
         boolean acceptedSettings = false;
         boolean deleteNews = false;
         boolean printing = false;
-        Scanner scanner = new Scanner(System.in);
         String[] command;
 
-        while (scanner.hasNextLine()) {
-            String nextLine = scanner.nextLine();
-            if (!nextLine.isEmpty()) {
-                command = lineParser(nextLine);
-            }
-            else {
-                System.err.println("Error: Chybny vstup!");
-                continue;
-            }
-            switch (command[0]) {
-                case "Input news": {
-                    acceptNews = true;
-                    deleteNews = false;
-                    printing = false;
-                    currentWriter = -1;
-                    break;
+        try (BufferedInputStream input = new BufferedInputStream(System.in)) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+            while (reader.ready()) {
+                String nextLine = reader.readLine();
+                if (!nextLine.isEmpty()) {
+                    command = lineParser(nextLine);
+                } else {
+                    System.err.println("Error: Chybny vstup!");
+                    continue;
                 }
-                case "Table settings": {
-                    String[] settings = command[1].split(" ");
-                    if (settings.length <= reporters.length && !acceptedSettings) {
-                        for (int i = 0; i < settings.length; i++) {
-                            try {
-                                reporters[i].setInitialTableSize(Integer.parseInt(settings[i]));
-                                reporters[i].setTableSize(Integer.parseInt(settings[i]));
-                                reporters[i].setNews(new Node[Integer.parseInt(settings[i])]);
+                switch (command[0]) {
+                    case "Input news": {
+                        acceptNews = true;
+                        deleteNews = false;
+                        printing = false;
+                        currentWriter = -1;
+                        break;
+                    }
+                    case "Table settings": {
+                        String[] settings = command[1].split(" ");
+                        if (settings.length <= reporters.length && !acceptedSettings) {
+                            for (int i = 0; i < settings.length; i++) {
+                                try {
+                                    reporters[i].setInitialTableSize(Integer.parseInt(settings[i]));
+                                    reporters[i].setTableSize(Integer.parseInt(settings[i]));
+                                    reporters[i].setNews(new Node[Integer.parseInt(settings[i])]);
+                                } catch (Exception e) {
+                                    System.err.println(e.getMessage());
+                                    break;
+                                }
                             }
-                            catch (Exception e) {
-                                System.err.println(e.getMessage());
-                                break;
-                            }
+                        } else {
+                            System.err.println("Error: Chybny vstup!");
                         }
+                        break;
                     }
-                    else {
-                        System.err.println("Error: Chybny vstup!");
-                    }
-                    break;
-                }
-                case "Writer settings": {
-                    currentWriter = Integer.parseInt(command[1]);
-                    acceptNews = false;
-                    deleteNews = false;
-                    printing = true;
-                    break;
-                }
-                case "Print": {
-                    if (currentWriter != -1) {
-                        dataPrinter(reporters[currentWriter - 1]);
+                    case "Writer settings": {
+                        currentWriter = Integer.parseInt(command[1]);
                         acceptNews = false;
                         deleteNews = false;
+                        printing = true;
+                        break;
                     }
-                    else {
-                        System.err.println("Error: Chybny vstup!");
-                    }
-                    break;
-                }
-                case "Delete": {
-                    if (currentWriter != -1) {
-                        acceptNews = false;
-                        deleteNews = true;
-                    }
-                    else {
-                        System.err.println("Error: Chybny vstup!");
-                    }
-                    break;
-                }
-                case "Error": {
-                    System.err.println("Error: Chybny vstup!");
-                    acceptNews = false;
-                    deleteNews = false;
-                    currentWriter = -1;
-                    break;
-                }
-                case "News": {
-                    if (acceptNews) {
-                        for (Reporter reporter : reporters) {
-                            reporter.addNews(command[1]);
+                    case "Print": {
+                        if (currentWriter != -1) {
+                            dataPrinter(reporters[currentWriter - 1]);
+                            acceptNews = false;
+                            deleteNews = false;
+                        } else {
+                            System.err.println("Error: Chybny vstup!");
                         }
+                        break;
                     }
-                    else if (deleteNews) {
-                        reporters[currentWriter - 1].deleteNews(command[1]);
+                    case "Delete": {
+                        if (currentWriter != -1) {
+                            acceptNews = false;
+                            deleteNews = true;
+                        } else {
+                            System.err.println("Error: Chybny vstup!");
+                        }
+                        break;
                     }
-                    else if (printing) {
-                        newsPrinter(command[1], reporters[currentWriter - 1]);
+                    case "Error": {
+                        System.err.println("Error: Chybny vstup!");
+                        acceptNews = false;
+                        deleteNews = false;
+                        currentWriter = -1;
+                        break;
                     }
-                    break;
+                    case "News": {
+                        if (acceptNews) {
+                            for (Reporter reporter : reporters) {
+                                reporter.addNews(command[1], 1);
+                            }
+                        } else if (deleteNews) {
+                            reporters[currentWriter - 1].deleteNews(command[1]);
+                        } else if (printing) {
+                            newsPrinter(command[1], reporters[currentWriter - 1]);
+                        }
+                        break;
+                    }
+                    default: {
+                        System.err.println("Line parser error" + command[0]);
+                        System.exit(1);
+                    }
                 }
-                default: {
-                    System.err.println("Line parser error" + command[0]);
-                    System.exit(1);
-                }
+                if (!acceptedSettings) acceptedSettings = true;
             }
-            if (!acceptedSettings) acceptedSettings = true;
         }
-        System.out.println();
+        catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     private static String[] lineParser(String inputLine) {
@@ -178,7 +179,7 @@ public class Hash {
     }
 
     private static void newsPrinter(String inputString, Reporter reporter) {
-        Node node = reporter.printNews(inputString);
+        Node node = reporter.findMessageByValue(inputString);
         if (node != null) {
             System.out.println(node);
         } else {
@@ -194,43 +195,52 @@ public class Hash {
 
         private int tableSize;
 
-        private final int reporterId;
-
         private final String reporterName;
 
         private Node[] news;
 
-        public Reporter(int initialSize, int id, String name) {
+        public Reporter(int initialSize, String name) {
             this.initialTableSize = initialSize;
             this.tableSize = initialSize;
-            this.reporterId = id;
             this.reporterName = name;
             this.news = new Node[this.tableSize];
         }
 
-        public void addNews(String message) {
-            rehash(true);
-            int messageIndex = Math.toIntExact(hashCalculation(message));
-            if (! insertMessage(messageIndex, message))
-            {
+        public void addNews(String message, int newsCount) {
+            Node news = findMessageByValue(message);
+            int messageIndex;
+            if (news != null && news.getNodeId() > -1) {
+                news.setNodeCount(news.getNodeCount() + 1);
+                return;
+            }
+            int loadFactor = (int) (getTableSize() * 0.7);
+            messageIndex = toIntExact(hashCalculation(message));
+            if (! insertMessage(messageIndex, message, newsCount)) {
                 int newMessageIndex = linearProbing(messageIndex, message, true);
-                insertMessage(newMessageIndex, message);
+                insertMessage(newMessageIndex, message, newsCount);
+            }
+            if (getMessageCount() > loadFactor) {
+                setTableSize(getTableSize() * 2);
+                rehash();
             }
         }
 
         public void deleteNews(String message) {
-            rehash(false);
-            int messageIndex = Math.toIntExact(hashCalculation(message));
-            if (! deleteMessage(messageIndex, message))
-            {
+            int messageIndex = toIntExact(hashCalculation(message));
+            if (! deleteMessage(messageIndex, message)) {
                 int newMessageIndex = linearProbing(messageIndex, message, false);
                 if (newMessageIndex != -1) {
                     deleteMessage(newMessageIndex, message);
                 }
             }
+            if (getMessageCount() < getTableSize() * 0.3 && getTableSize() != getInitialTableSize()) {
+                int newSize = Math.max(getTableSize() / 2, getInitialTableSize());
+                setTableSize(newSize);
+                rehash();
+            }
         }
 
-        public Node printNews(String message) {
+        public Node findMessageByValue(String message) {
             for (Node node : getNews()) {
                 if (node != null && node.getNodeValue().equals(message)) {
                     return node;
@@ -239,16 +249,22 @@ public class Hash {
             return null;
         }
 
-        private boolean insertMessage(int index, String message) {
+        private boolean insertMessage(int index, String message, int newsCount) {
             Node[] nodes = getNews();
             if (nodes[index] == null) {
-                nodes[index] = new Node(index, 1, message);
+                nodes[index] = new Node(index, newsCount, message);
                 setMessageCount(getMessageCount() + 1);
                 return true;
-            } else if (nodes[index].getNodeValue().equals(message)) {
+            } else if (nodes[index].getNodeValue().equals(message) && nodes[index].getNodeId() > -1) {
                 nodes[index].setNodeCount(nodes[index].getNodeCount() + 1);
                 return true;
-            } else if (nodes[index].getNodeValue().equals("!")) {
+            } else if (nodes[index].getNodeValue().equals(message) && nodes[index].getNodeId() == -1) {
+                nodes[index].setNodeId(index);
+                nodes[index].setNodeCount(nodes[index].getNodeCount() + 1);
+                setMessageCount(getMessageCount() + 1);
+                return true;
+            } else if (nodes[index].getNodeId() == -1) {
+                nodes[index].setNodeId(index);
                 nodes[index].setNodeValue(message);
                 nodes[index].setNodeCount(1);
                 setMessageCount(getMessageCount() + 1);
@@ -266,61 +282,34 @@ public class Hash {
                 nodes[index].setNodeCount(nodes[index].getNodeCount() - 1);
                 return true;
             } else if (nodes[index].getNodeValue().equals(message) && nodes[index].getNodeCount() == 1) {
-                nodes[index].setNodeValue("!");
+                nodes[index].setNodeId(-1);
                 nodes[index].setNodeCount(0);
                 setMessageCount(getMessageCount() - 1);
                 return true;
             }
-            return false;
-        }
-
-        private void rehash(boolean forInsert) {
-            int size = getTableSize();
-            int newsCount = getMessageCount();
-
-            if (forInsert && newsCount + 1 >= size * 0.7) {
-                Node[] oldNews = getNews();
-                setTableSize(getTableSize() * 2);
-                news = new Node[getTableSize()];
-                setMessageCount(0);
-                for (Node message: oldNews) {
-                    if (message != null && ! message.getNodeValue().equals("!")) {
-                        addNews(message.getNodeValue());
-                    }
-                }
-            } else if (! forInsert && newsCount - 1 <= size * 0.3) {
-                Node[] oldNews = getNews();
-                setTableSize(Math.max(newsCount / 2, getInitialTableSize()));
-                news = new Node[getTableSize()];
-                setMessageCount(0);
-                for (Node message: oldNews) {
-                    if (message != null && ! message.getNodeValue().equals("!")) {
-                        addNews(message.getNodeValue());
-                    }
-                }
-            }
+            else return nodes[index].getNodeValue().equals(message) && nodes[index].getNodeId() == -1;
         }
 
         private int linearProbing(int index, String message, boolean forInsert) {
             Node[] nodes = getNews();
             int originalIndex = index;
             index = (index + 1) % getTableSize();
-            int tombstone = -1;
+            int tombstone;
 
             while (nodes[index] != null) {
                 if (nodes[index].getNodeValue().equals(message)) {
                     return index;
                 }
-                if (forInsert && nodes[index].getNodeValue().equals("!") && tombstone == -1) {
+                if (forInsert && nodes[index].getNodeId() == -1) {
                     tombstone = index;
+                    return tombstone;
                 }
                 index = (index + 1) % getTableSize();
-
                 if (index == originalIndex) {
                     break;
                 }
             }
-            return forInsert ? (tombstone != -1 ? tombstone : index) : -1;
+            return forInsert ? index : -1;
         }
 
         private long hashCalculation(String news) {
@@ -336,16 +325,23 @@ public class Hash {
             return hash % getTableSize();
         }
 
+        private void rehash() {
+            Node[] oldNews = getNews();
+            this.news = new Node[getTableSize()];
+            setMessageCount(0);
+            for (Node message: oldNews) {
+                if (message != null && message.getNodeId() > -1) {
+                    addNews(message.getNodeValue(), message.nodeCount);
+                }
+            }
+        }
+
         private int getCharValue(char c) {
             return (c == ' ') ? 31 : (c - 'a' + 1);
         }
 
         public String getReporterName() {
             return this.reporterName;
-        }
-
-        public int getReporterId() {
-            return this.reporterId;
         }
 
         public int getTableSize() {
@@ -383,7 +379,7 @@ public class Hash {
 
     private static class Node {
 
-        private final int nodeId;
+        private int nodeId;
 
         private int nodeCount;
 
@@ -397,6 +393,10 @@ public class Hash {
 
         public int getNodeId() {
             return nodeId;
+        }
+
+        public void setNodeId(int nodeId) {
+            this.nodeId = nodeId;
         }
 
         public int getNodeCount() {
